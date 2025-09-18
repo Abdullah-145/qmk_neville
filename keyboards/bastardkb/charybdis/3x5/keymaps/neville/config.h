@@ -1,27 +1,121 @@
-#pragma once
+/**
+* Clean version for testing Cirque Pinnacle trackpad only
+*/
 
-/* ---------------- VIA ---------------- */
-#ifdef VIA_ENABLE
-#    undef DYNAMIC_KEYMAP_LAYER_COUNT
-#    define DYNAMIC_KEYMAP_LAYER_COUNT 4
-#endif
+#include "drivers/sensors/cirque_pinnacle.h"
+#include QMK_KEYBOARD_H
 
-/* ---------------- Tapping ---------------- */
-#ifndef TAPPING_TERM
-#    define TAPPING_TERM 200
-#endif
+#ifdef CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_ENABLE
+#    include "timer.h"
+#endif // CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_ENABLE
 
-#ifndef __arm__
-#    define NO_ACTION_ONESHOT
-#endif
+// ---------------- Layers ----------------
+enum charybdis_keymap_layers {
+    LAYER_BASE = 0,
+    LAYER_LOWER,
+    LAYER_RAISE,
+    LAYER_DUAL,
+    LAYER_POINTER,
+};
 
-/* ---------------- Pointing Device (Cirque Trackpad) ---------------- */
+// ---------------- Layer Keys ----------------
+#define LOWER MO(LAYER_LOWER)
+#define RAISE MO(LAYER_RAISE)
+#define PT_SPC LT(LAYER_DUAL, KC_SPC)
+#define PT_DOT LT(LAYER_DUAL, KC_DOT)
+
+#ifndef POINTING_DEVICE_ENABLE
+#    define DRGSCRL KC_NO
+#    define DPI_MOD KC_NO
+#    define S_D_MOD KC_NO
+#    define SNIPING KC_NO
+#endif // !POINTING_DEVICE_ENABLE
+
+// ---------------- Keymaps ----------------
+const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+[LAYER_BASE] = LAYOUT(
+KC_Q,      KC_W,       KC_E,        KC_R,              KC_T,              KC_Y,      KC_U,        KC_I,        KC_O,              KC_P,
+SFT_T(KC_A),      KC_S,       KC_D,        KC_F,       ALT_T(KC_G),      RALT_T(KC_H),      KC_J,        KC_K,        KC_L,   RSFT_T(KC_QUOT),
+CTL_T(KC_Z),      KC_X,       KC_C,        KC_V,      LGUI_T(KC_B),      RCMD_T(KC_N),      KC_M,     KC_COMM,      KC_DOT,            KC_ENT,
+RAISE,    RAISE,   LOWER,           KC_BTN1,   KC_BTN2
+),
+
+[LAYER_RAISE] = LAYOUT(
+KC_ESC,      KC_7,       KC_8,         KC_9,           KC_GRV,           KC_LPRN,    KC_RPRN,     KC_MINS,     KC_EQL,           KC_BSPC,
+SFT_T(KC_TAB),      KC_4,       KC_5,         KC_6,          KC_LALT,            KC_DLR,    KC_AMPR,       KC_AT,    KC_SCLN,   RSFT_T(KC_QUOT),
+CTL_T(KC_0),      KC_1,       KC_2,         KC_3,           KC_SPC,           KC_ASTR,    KC_EXLM,     KC_BSLS,    KC_SLSH,            KC_ENT,
+XXXXXXX,   XXXXXXX,    _______,           KC_BTN1,   KC_BTN2
+),
+
+[LAYER_LOWER] = LAYOUT(
+KC_F9,    KC_F10,     KC_F11,       KC_F12,         KC_TILD,           KC_LBRC,    KC_RBRC,    KC_UNDS,     KC_PLUS,           KC_DEL,
+SFT_T(KC_F5),     KC_F6,      KC_F7,        KC_F8,         KC_LCMD,           KC_LCBR,    KC_RCBR,    KC_HASH,     KC_COLN,          KC_RSFT,
+CTL_T(KC_F1),     KC_F2,      KC_F3,        KC_F4,          KC_SPC,           KC_PERC,    KC_CIRC,    KC_PIPE,     KC_QUES,           KC_ENT,
+_______,        _______,   XXXXXXX,           KC_BTN1,    KC_BTN2
+),
+
+[LAYER_DUAL] = LAYOUT(
+KC_BRID,   KC_BRIU,   C(KC_UP),    LAG(KC_D),        RGB_VAI,            KC_MRWD,     KC_MPLY,   KC_MFFD,      KC_VOLD,         KC_VOLU,
+SFT_T(KC_CAPS),   RGB_SAD,    RGB_SAI,      RGB_HUD,        RGB_HUI,            DPI_MOD,    DPI_RMOD,     KC_UP,      KC_PGUP,         KC_PGDN,
+SNIPING,   S_D_MOD,   S_D_RMOD,        DT_UP,        DT_DOWN,            DT_PRNT,     KC_LEFT,   KC_DOWN,     KC_RIGHT,         DRG_TOG,
+_______,    _______,    _______,            KC_BTN1,     KC_BTN2
+),
+};
+
+// ---------------- Pointing Device ----------------
 #ifdef POINTING_DEVICE_ENABLE
-    #define POINTING_DEVICE_SCROLL_ENABLE
-    #define POINTING_DEVICE_INVERT_V
+static uint16_t auto_pointer_layer_timer = 0;
 
-    /* Cirque Pinnacle I²C config */
-    #define CIRQUE_PINNACLE_ADDR 0x2A   // Default I²C address (from datasheet)
-    #define I2C1_SCL_PIN D0
-    #define I2C1_SDA_PIN D1
-#endif
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    // Only Cirque trackpad active
+    report_mouse_t cirque_report = cirque_pinnacle_get_report();
+
+    // Merge into base mouse_report
+    mouse_report.x += cirque_report.x;
+    mouse_report.y += cirque_report.y;
+    mouse_report.v += cirque_report.v;
+    mouse_report.h += cirque_report.h;
+
+    if (abs(mouse_report.x) > CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_THRESHOLD ||
+        abs(mouse_report.y) > CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_THRESHOLD) {
+        if (auto_pointer_layer_timer == 0) {
+            layer_on(LAYER_POINTER);
+            #ifdef RGB_MATRIX_ENABLE
+            rgb_matrix_mode_noeeprom(RGB_MATRIX_NONE);
+            rgb_matrix_sethsv_noeeprom(HSV_GREEN);
+            #endif
+        }
+        auto_pointer_layer_timer = timer_read();
+    }
+
+    return mouse_report;
+}
+
+void matrix_scan_user(void) {
+    if (auto_pointer_layer_timer != 0 &&
+        TIMER_DIFF_16(timer_read(), auto_pointer_layer_timer) >= CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_TIMEOUT_MS) {
+        auto_pointer_layer_timer = 0;
+        layer_off(LAYER_POINTER);
+        #ifdef RGB_MATRIX_ENABLE
+        rgb_matrix_mode_noeeprom(RGB_MATRIX_DEFAULT_MODE);
+        #endif
+    }
+}
+#endif // POINTING_DEVICE_ENABLE
+
+// ---------------- Combos ----------------
+enum combos {
+    RAISE_LOWER_LAYER_DUAL,
+    BTN1_BTN2_BTN3,
+    DOT_COMM_DRGSCRL,
+};
+
+const uint16_t PROGMEM raise_lower_layer_dual[] = { RAISE, LOWER, COMBO_END};
+const uint16_t PROGMEM btn1_btn2_btn3[] = { KC_BTN1, KC_BTN2, COMBO_END};
+const uint16_t PROGMEM dot_ent_drgscrl[] = { KC_DOT, KC_COMM, COMBO_END};
+
+combo_t key_combos[] = {
+    COMBO(raise_lower_layer_dual, MO(LAYER_DUAL)),
+    COMBO(btn1_btn2_btn3, KC_BTN3),
+    COMBO(dot_ent_drgscrl, DRGSCRL),
+};
