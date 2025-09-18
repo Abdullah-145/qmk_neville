@@ -19,8 +19,9 @@
 /*---------------- Charybdis-Specific Options ----------------*/
 #ifdef POINTING_DEVICE_ENABLE
     #define POINTING_DEVICE_SCROLL_ENABLE
-    //#define POINTING_DEVICE_INVERT_X   // uncomment if X movement is reversed (L/R flipped)
-    #define POINTING_DEVICE_INVERT_Y     // Y-axis is inverted by default per datasheet
+    #define POINTING_DEVICE_ROTATION_90
+#define POINTING_DEVICE_INVERT_X
+#define POINTING_DEVICE_INVERT_Y
 
     // Auto pointer layer trigger
     #define CHARYBDIS_AUTO_POINTER_LAYER_TRIGGER_ENABLE
@@ -69,3 +70,5 @@
 
     // Ensure you supply 3.3V power to VDD
 #endif // POINTING_DEVICE_ENABLE
+#define CIRQUE_PINNACLE_TAP_ENABLE
+#define POINTING_DEVICE_GESTURES_SCROLL_ENABLE
