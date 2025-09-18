@@ -18,3 +18,5 @@ CONSOLE_ENABLE = yes
 
 # Enable trackball / trackpad support (PMW3360 + Cirque)
 POINTING_DEVICE_ENABLE = yes
+
+POINTING_DEVICE_DRIVER = cirque_pinnacle_i2c
