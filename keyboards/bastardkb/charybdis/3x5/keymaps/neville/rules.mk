@@ -16,7 +16,12 @@ DYNAMIC_TAPPING_TERM_ENABLE = yes
 # Enable debugging console (for printf/logging)
 CONSOLE_ENABLE = yes
 
-# Enable trackball / trackpad support (PMW3360 + Cirque)
+# Enable pointing devices (trackball + trackpad)
 POINTING_DEVICE_ENABLE = yes
 
-POINTING_DEVICE_DRIVER = cirque_pinnacle_i2c
+# Enable individual drivers
+PMW3360_ENABLE = yes
+CIRQUE_PINNACLE_ENABLE = yes
+
+# Required for Cirque I²C
+I2C_DRIVER_REQUIRED = yes
